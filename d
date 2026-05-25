@@ -15,9 +15,34 @@ local queued =
 	or queueonteleport
 	or (syn and syn.queue_on_teleport)
 
+--// TELEPORT INJECTION CONTROL (IMPROVED)
+local INJECT_DEBOUNCE = 10
+local lastInjectTime = 0
+
+-- per-server tracking (THIS is the optional improvement)
+local injectedSessions = {}
+local currentSession = game.JobId
+
 local function teleportInject()
+	local now = os.clock()
+
+	-- session-based guard (new server allows re-run)
+	if injectedSessions[currentSession] then
+		return
+	end
+
+	-- hard debounce (prevents spam during teleport callbacks)
+	if (now - lastInjectTime) < INJECT_DEBOUNCE then
+		return
+	end
+
+	injectedSessions[currentSession] = true
+	lastInjectTime = now
+
 	if queued then
-		queued('loadstring(game:HttpGet("https://raw.githubusercontent.com/RonaldoStriker/qee/refs/heads/main/d"))()')
+		pcall(function()
+			queued('loadstring(game:HttpGet("https://raw.githubusercontent.com/RonaldoStriker/qee/refs/heads/main/d"))()')
+		end)
 	end
 end
 
@@ -25,17 +50,16 @@ end
 teleportInject()
 
 -- fallback teleport hook
-player.OnTeleport:Connect(function(state)
+player.OnTeleport:Connect(function()
+	-- update session in case teleport changes JobId mid-chain
+	currentSession = game.JobId
 	teleportInject()
 end)
 
 local reconnecting = false
 
 local function reconnectLoop()
-	if reconnecting then
-		return
-	end
-
+	if reconnecting then return end
 	reconnecting = true
 
 	while true do
@@ -55,7 +79,6 @@ end
 
 GuiService.ErrorMessageChanged:Connect(function()
 	local err = GuiService:GetErrorMessage()
-
 	if err and err ~= "" then
 		task.spawn(reconnectLoop)
 	end
@@ -140,21 +163,14 @@ end
 local function runDrainCommand()
 	if not player.Character then return end
 
-	local character = player.Character
-	local teamName = getTeamFromCharacter(character)
-
+	local teamName = getTeamFromCharacter(player.Character)
 	if not teamName then return end
 
-	local command
 	if teamName == ROYAL_NATION then
-		command = "/drainnation"
+		runCommand("/drainnation")
 	elseif teamName == GOLDEN_EMPIRE then
-		command = "/drainempire"
-	else
-		return
+		runCommand("/drainempire")
 	end
-
-	runCommand(command)
 end
 
 local function monitorTickets()

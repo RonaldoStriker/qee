@@ -16,7 +16,7 @@ local queued =
 	or (syn and syn.queue_on_teleport)
 
 if queued then
-	queued(game:HttpGet("YOUR_RAW_SCRIPT_URL_HERE")())
+	queued('loadstring(game:HttpGet("https://raw.githubusercontent.com/RonaldoStriker/qee/refs/heads/main/d"))()')
 end
 
 local reconnecting = false
@@ -29,15 +29,13 @@ local function reconnectLoop()
 	reconnecting = true
 
 	while true do
-		local success, err = pcall(function()
+		local success = pcall(function()
 			TeleportService:Teleport(game.PlaceId, player)
 		end)
 
 		if success then
 			break
 		end
-
-		warn("Reconnect failed:", err)
 
 		task.wait(5)
 	end
@@ -79,21 +77,16 @@ player.Idled:Connect(function()
 end)
 
 local function pressBTwice()
-	if surrenderRunning then
-		return
-	end
-
+	if surrenderRunning then return end
 	surrenderRunning = true
 
 	repeat
 		for i = 1, 2 do
 			VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.B, false, game)
 			task.wait(0.1)
-
 			VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.B, false, game)
 			task.wait(0.1)
 		end
-
 		task.wait(0.1)
 	until surrenders.Value > 0
 
@@ -102,10 +95,7 @@ end
 
 local function getCommandBar()
 	local success, commandBar = pcall(function()
-		return player
-			:WaitForChild("PlayerGui")
-			:WaitForChild("main")
-			:WaitForChild("CommandBar")
+		return player.PlayerGui.main.CommandBar
 	end)
 
 	if success then
@@ -115,10 +105,7 @@ end
 
 local function runCommand(cmd)
 	local commandBar = getCommandBar()
-
-	if not commandBar then
-		return
-	end
+	if not commandBar then return end
 
 	commandBar:CaptureFocus()
 	commandBar.Text = cmd
@@ -141,19 +128,14 @@ local function getTeamFromCharacter(character)
 end
 
 local function runDrainCommand()
-	if not player.Character then
-		return
-	end
+	if not player.Character then return end
 
 	local character = player.Character
 	local teamName = getTeamFromCharacter(character)
 
-	if not teamName then
-		return
-	end
+	if not teamName then return end
 
 	local command
-
 	if teamName == ROYAL_NATION then
 		command = "/drainnation"
 	elseif teamName == GOLDEN_EMPIRE then
@@ -168,30 +150,15 @@ end
 local function monitorTickets()
 	if ticketsConnection then
 		ticketsConnection:Disconnect()
-		ticketsConnection = nil
 	end
 
 	local character = player.Character
-
-	if not character then
-		return
-	end
+	if not character then return end
 
 	local teamName = getTeamFromCharacter(character)
+	if not teamName then return end
 
-	if not teamName then
-		return
-	end
-
-	local tickets
-
-	if teamName == ROYAL_NATION then
-		tickets = nationTickets
-	elseif teamName == GOLDEN_EMPIRE then
-		tickets = empireTickets
-	else
-		return
-	end
+	local tickets = (teamName == ROYAL_NATION) and nationTickets or empireTickets
 
 	if tickets.Value <= 0 then
 		pressBTwice()
@@ -212,10 +179,7 @@ local function ensureFastProgression()
 end
 
 local function initializeOnce()
-	if initialized then
-		return
-	end
-
+	if initialized then return end
 	initialized = true
 
 	runCommand("/togglecampaign")
@@ -225,19 +189,15 @@ local function initializeOnce()
 	task.wait(0.3)
 
 	runCommand("/fastrespawns")
-	task.wait(0.3)
-
 	task.spawn(ensureFastProgression)
 
 	task.wait(0.3)
-
 	runCommand("/skipround")
 end
 
 task.spawn(function()
 	while true do
 		local character = player.Character or player.CharacterAdded:Wait()
-
 		character:WaitForChild("ingameScript")
 
 		task.wait(1)

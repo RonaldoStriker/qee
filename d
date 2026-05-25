@@ -15,9 +15,19 @@ local queued =
 	or queueonteleport
 	or (syn and syn.queue_on_teleport)
 
-if queued then
-	queued('loadstring(game:HttpGet("https://raw.githubusercontent.com/RonaldoStriker/qee/refs/heads/main/d"))()')
+local function teleportInject()
+	if queued then
+		queued('loadstring(game:HttpGet("https://raw.githubusercontent.com/RonaldoStriker/qee/refs/heads/main/d"))()')
+	end
 end
+
+-- initial teleport queue injection
+teleportInject()
+
+-- fallback teleport hook
+player.OnTeleport:Connect(function(state)
+	teleportInject()
+end)
 
 local reconnecting = false
 
